@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>jQuery SmartCharts demo</title>
+		<script src="http://ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js"></script>
+		<script src="../src/jquery.smartCharts.js"></script>
+	</head>
+	<body>
+		<h1>SmartCharts demo</h1>
+		<div id="demo1" with="500px" height="400px"></div>
+		<script>
+			$(function() {
+				$("#demo1").smartChart({
+					data: [["manzanas",10,20,"#FF0000"],
+						   ["peras"   ,90,10,"#00FF00"]]
+				});
+			});
+		</script>
+	</body>
+</html>
