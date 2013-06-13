@@ -13,9 +13,14 @@
 
 		// Create the defaults once
 		var pluginName = "smartChart",
-				defaults = {
-				chart : "pie"
-		};
+			defaults = {
+				chart : "pie",
+				pie_options : {
+					inset: '30%',
+					startAngle: 0,
+					blankAngle: 30
+				}
+			};
 
 		// The actual plugin constructor
 		function Plugin ( element, options ) {
@@ -40,19 +45,31 @@
 							id : this.container.attr('id') + "_smartChartCanvas"
 						});
 						this.canvas.appendTo(this.container);
-						this.proportions = this.calcProportions(this.settings);
 
-						console.log(this.canvas);
+						var canvas = this.canvas[0];
+						canvas.style.width ='100%';
+  						canvas.style.height='100%';
+						// ...then set the internal size to match
+						canvas.width  = canvas.offsetWidth;
+						canvas.height = canvas.offsetHeight;
 
-						var context = this.canvas[0].getContext("2d");
-						if (this.settings.chart == "pie") {
-							this.drawPie(this.canvas,context,this.proportions);
-						};
+
+						this.draw();
+				},
+
+				draw: function () {
+					this.proportions = this.calcProportions(this.settings);
+
+					var context = this.canvas[0].getContext("2d");
+					if (this.settings.chart == "pie") {
+						this.drawPie(this.canvas[0],context,this.proportions);
+					};
 				},
 
 				refresh: function (options) {
 					this.settings = $.extend( {}, defaults, options );
-					this.init();
+
+					this.draw();
 				},
 
 				calcProportions: function (settings) {
@@ -62,14 +79,16 @@
 
 					var partialFirstSums = this.partialSumColumn(settings.data,1);
 					var sumFirst = partialFirstSums[partialFirstSums.length-1];
+					var maxSecond = this.maxOfColumn(settings.data,2);
 
 					for (var i = 0; i < settings.data.length; i++) {
 						var item = {};
 						if (settings.chart == "pie") {
 							item.start = proportionToRadians(partialFirstSums[i]/sumFirst);
 							item.end = proportionToRadians(partialFirstSums[i+1]/sumFirst);
-							item.color = settings.data[i][3]
-						};
+							item.color = settings.data[i][3];
+							item.size = settings.data[i][2]/maxSecond;
+						} else if (settings.chart == "");
 						result.push(item);
 					};
 
@@ -78,17 +97,38 @@
 
 				drawPie: function (canvas, context, proportions){
 
-					var centerX = Math.floor(canvas.width() / 2);
-					var centerY = Math.floor(canvas.height() / 2);
+					context.clearRect(0, 0, canvas.width, canvas.height);
+
+					/* Radius and centering */
+					var centerX = Math.floor(canvas.width / 2);
+					var centerY = Math.floor(canvas.height / 2);
 					var fullRadius = Math.min(centerX,centerY);
+					var centerRadius = this.settings.pie_options.inset;
+					if (centerRadius.substring) {
+						if (centerRadius.match(/%/)) {
+							centerRadius = parseFloat(centerRadius) / 100 * fullRadius;
+						}else {
+							centerRadius = parseFloat(centerRadius);
+						}
+					};
+					var drawableRadius = fullRadius-centerRadius;
 					
+					/* Start and ending angle */
+					var angleOffset = degreesToRadians(-90+this.settings.pie_options.startAngle);
+					var angleProportion = (360-this.settings.pie_options.blankAngle)/360
+					function updateRadians(radians){
+						return (radians * angleProportion) + angleOffset;
+					}
+
+
+					/* Draw the portions of the pie */
 					function drawSegment(canvas,context,item){
 
 						context.save();
 
 						context.beginPath();
 						context.moveTo(centerX,centerY);
-						context.arc(centerX, centerY, fullRadius, item.start, item.end, false);
+						context.arc(centerX, centerY, centerRadius + item.size*drawableRadius, updateRadians(item.start), updateRadians(item.end), false);
 						context.closePath();
 
 						context.fillStyle = item.color;
@@ -100,6 +140,24 @@
 					for (var i = proportions.length - 1; i >= 0; i--) {
 						drawSegment(canvas,context,proportions[i]);
 					};
+
+
+					/* Carve the center */
+					context.save();
+
+					context.beginPath();
+					context.moveTo(centerX,centerY);
+
+					context.arc(centerX,centerY,centerRadius,0,2*Math.PI,false);
+					context.closePath();
+					context.clip();
+					context.clearRect(0, 0, canvas.width, canvas.height);
+
+					context.restore();
+				},
+
+				drawBars: function (canvas, context, proportions){
+
 				},
 
 				partialSumColumn: function (data, column) {
@@ -110,6 +168,17 @@
 						temp += data[i][column];
 					};
 					result.push(temp);
+					return result;
+				},
+
+				maxOfColumn: function (data, column) {
+					var result = 0;
+					for (var i = data.length - 1; i >= 0; i--) {
+						var temp = data[i][column];
+						if (temp > result) {
+							result = temp;
+						};
+					};
 					return result;
 				}
 		};
@@ -130,9 +199,12 @@
 
 
 		// Helper functions:
-
 		function proportionToRadians(proportion){
 			return proportion*2*Math.PI;
+		}
+
+		function degreesToRadians(degrees){
+			return proportionToRadians(degrees/360);
 		}
 
 })( jQuery, window, document );

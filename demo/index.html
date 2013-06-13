@@ -7,14 +7,30 @@
 	</head>
 	<body>
 		<h1>SmartCharts demo</h1>
-		<div id="demo1" with="500px" height="400px"></div>
+		<textarea id="contentArea" style="width:500px;height:200px;">
+{
+	data: [
+		["manzanas",10,20,"#FF0000"],
+		["peras",90,15,"#00FF00"]
+	]
+}
+		</textarea>
+		<br>
+		<a onClick="update();">actualizar</a>
+		<br>
+		<div id="demo1" style="width:100%;height:500px"></div>
 		<script>
 			$(function() {
 				$("#demo1").smartChart({
 					data: [["manzanas",10,20,"#FF0000"],
-						   ["peras"   ,90,10,"#00FF00"]]
+						   ["peras"   ,90,15,"#00FF00"]]
 				});
 			});
+			function update(){
+				$("#demo1").smartChart({
+					data: eval( $("#contentArea").val())
+				});
+			};
 		</script>
 	</body>
 </html>
